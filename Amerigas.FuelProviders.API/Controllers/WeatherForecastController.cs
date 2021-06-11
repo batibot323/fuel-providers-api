@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Amerigas.FuelProviders.API.Models;
+using Microsoft.AspNetCore.Cors;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using System;
@@ -40,9 +42,10 @@ namespace Amerigas.FuelProviders.API.Controllers
             .ToArray();
         }
 
-        [HttpGet]
-        [Route("Cosmos")]
-        public async Task<string> InsertToCosmos()
+        [HttpPost]
+        [Route("FuelProviders")]
+        [EnableCors("AllowAll")]
+        public async Task<string> InsertFuelProviders([FromBody]FuelProviderRequestModel[] fuelProviders)
         {
             var myObject = new
             {

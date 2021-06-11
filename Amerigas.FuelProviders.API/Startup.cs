@@ -33,6 +33,15 @@ namespace Amerigas.FuelProviders.API
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "Amerigas.FuelProviders.API", Version = "v1" });
             });
+
+            services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAll",
+                    builder =>
+                    {
+                        builder.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+                    });
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -48,6 +57,8 @@ namespace Amerigas.FuelProviders.API
             app.UseHttpsRedirection();
 
             app.UseRouting();
+
+            app.UseCors();
 
             app.UseAuthorization();
 

@@ -48,7 +48,7 @@ namespace Amerigas.FuelProviders.API.Providers
             string result;
             try
             {
-                
+
                 ItemResponse<JObject> itemResponse = await _container.ReadItemAsync<JObject>(newItem["id"].ToString(), new PartitionKey(pkey));
                 result = "Item with id " + newItem["id"].ToString() + " already exists.";
             }
@@ -85,19 +85,10 @@ namespace Amerigas.FuelProviders.API.Providers
 
                 // bulk delete
                 var query = "SELECT c._self FROM c";
-                var result = await DeleteAll(spId, query, _partitionKey);
-
+                DeleteAll(spId, query, _partitionKey).Wait();
                 // bulk insert
-                try
-                {
-                    BulkInsert<T>(collection, _partitionKey).Wait();
-                    return true;
-                }
-                catch (Exception)
-                {
-
-                    throw;
-                }
+                BulkInsert<T>(collection, _partitionKey).Wait();
+                return true;
             }
             catch (Exception ex)
             {
@@ -106,17 +97,18 @@ namespace Amerigas.FuelProviders.API.Providers
             }
         }
 
-        public async Task BulkInsert<T>(IEnumerable<T> collection, string partitionKey) where T: BaseEntity
+        public async Task BulkInsert<T>(IEnumerable<T> collection, string partitionKey) where T : BaseEntity
         {
-            if (string.IsNullOrWhiteSpace(partitionKey))
-                throw new ArgumentNullException("Partition Key is null.");
-
             try
             {
                 List<Task> concurrentTasks = new List<Task>();
                 foreach (var itemToInsert in collection)
                 {
-                    itemToInsert.Application = partitionKey;
+                    itemToInsert.Application ??= partitionKey;
+
+                    if (string.IsNullOrWhiteSpace(itemToInsert.Application))
+                        throw new ArgumentNullException("Partition Key is null.");
+
                     concurrentTasks.Add(_container.CreateItemAsync(itemToInsert, new PartitionKey(itemToInsert.Application)));
                 }
                 await Task.WhenAll(concurrentTasks);
@@ -128,20 +120,17 @@ namespace Amerigas.FuelProviders.API.Providers
             }
         }
 
-        public async Task<bool> DeleteAll(string spId, string query, string partitionKey)
+        public async Task DeleteAll(string spId, string query, string partitionKey)
         {
             try
             {
-                var result = await _client.GetContainer(_databaseName, _containerName).Scripts.ExecuteStoredProcedureAsync<dynamic>(spId, new PartitionKey(partitionKey), new[] { query });
-                if (result.StatusCode == HttpStatusCode.OK)
-                    return true;
+                var result = await _client.GetContainer(_databaseName, _containerName).Scripts.ExecuteStoredProcedureAsync<dynamic>(spId, new PartitionKey(partitionKey), new[] { query });   
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex.Message, ex);
                 throw;
             }
-            return false;
         }
 
         public async Task<bool> CreateStoredProcedure(string storedProcedureId)

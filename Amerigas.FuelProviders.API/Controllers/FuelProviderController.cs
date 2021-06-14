@@ -29,22 +29,19 @@ namespace Amerigas.FuelProviders.API.Controllers
         [EnableCors("AllowAll")]
         public async Task<IActionResult> InsertFuelProviders([FromBody]FuelProviderRequestModel[] fuelProviders)
         {
-            //var myObject = new
-            //{
-            //    id = Guid.NewGuid(),
-            //    FuelProvider = "GASUL",
-            //    Name = "Hani",
-            //    Level = 85,
-            //    Hobby = "Cooking",
-            //    FavoriteFood = "Lasagna",
-            //    FavoriteDay = "Monday",
-            //    Color = "Orange"
-            //};
-            //JObject o = (JObject)JToken.FromObject(myObject);
-            //return Ok(await _cosmosDbService.CreateItem(o));
-
-            var result = await _cosmosDbService.InsertFuelProviders(fuelProviders);
-            return Ok();
+            try
+            {
+                var isSuccess = await _cosmosDbService.InsertFuelProviders(fuelProviders);
+                if(isSuccess == true)
+                    return Ok("Bulk Insert Successful.");
+                
+                return StatusCode(500);
+            }
+            catch (Exception e)
+            {
+                return StatusCode(500, e.Message);
+            }
+            
         }
     }
 }

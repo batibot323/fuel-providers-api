@@ -77,8 +77,7 @@ namespace Amerigas.FuelProviders.API
                 // bulk insert
                 try
                 {
-                    string partitionKey = "Amerigas";
-                    BulkInsert<T>(collection, partitionKey).Wait();
+                    BulkInsert<T>(collection, _pKey).Wait();
                     return true;
                 }
                 catch (Exception)

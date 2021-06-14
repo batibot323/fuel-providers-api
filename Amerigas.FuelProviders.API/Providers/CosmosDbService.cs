@@ -1,8 +1,10 @@
 ﻿using Amerigas.FuelProviders.API.Models;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Scripts;
+using Microsoft.Azure.Cosmos.Spatial;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -67,7 +69,7 @@ namespace Amerigas.FuelProviders.API.Providers
             return result;
         }
 
-        public async Task<bool> InsertFuelProviders<T>(IEnumerable<T> collection) where T : BaseEntity
+        public async Task<bool> InsertFuelProviders(IEnumerable<FuelProviderRequestModel> fuelProviders)
         {
             // Create Stored procedure if not exists
             try
@@ -85,9 +87,28 @@ namespace Amerigas.FuelProviders.API.Providers
 
                 // bulk delete
                 var query = "SELECT c._self FROM c";
-                DeleteAll(spId, query, _partitionKey).Wait();
+                while (true)
+                {
+                    var deleteResponse = await DeleteAll(spId, query, _partitionKey);
+                    var json = JsonConvert.SerializeObject(deleteResponse, Formatting.Indented,
+                        new JsonSerializerSettings
+                        {
+                            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+                        });
+                    if (json.Contains("\"deleted\": 0"))
+                    {
+                        // Stop deleting when you there's no more to delete.
+                        break;
+                    }
+                }
                 // bulk insert
-                BulkInsert<T>(collection, _partitionKey).Wait();
+                List<FuelProvider> transformedFuelProviders = new List<FuelProvider>();
+                foreach (var fuelProvider in fuelProviders)
+                {
+                    var transformedData = new FuelProvider(fuelProvider);
+                    transformedFuelProviders.Add(transformedData);
+                }
+                BulkInsert(transformedFuelProviders, _partitionKey).Wait();
                 return true;
             }
             catch (Exception ex)
@@ -97,7 +118,7 @@ namespace Amerigas.FuelProviders.API.Providers
             }
         }
 
-        public async Task BulkInsert<T>(IEnumerable<T> collection, string partitionKey) where T : BaseEntity
+        public async Task BulkInsert(IEnumerable<FuelProvider> collection, string partitionKey)
         {
             try
             {
@@ -120,17 +141,20 @@ namespace Amerigas.FuelProviders.API.Providers
             }
         }
 
-        public async Task DeleteAll(string spId, string query, string partitionKey)
+        public async Task<StoredProcedureExecuteResponse<dynamic>> DeleteAll(string spId, string query, string partitionKey)
         {
+            StoredProcedureExecuteResponse<dynamic> result;
             try
             {
-                var result = await _client.GetContainer(_databaseName, _containerName).Scripts.ExecuteStoredProcedureAsync<dynamic>(spId, new PartitionKey(partitionKey), new[] { query });
+                result = await _client.GetContainer(_databaseName, _containerName).Scripts.ExecuteStoredProcedureAsync<dynamic>(spId, new PartitionKey(partitionKey), new[] { query });   
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex.Message, ex);
                 throw;
             }
+
+            return result;
         }
 
         public async Task<bool> CreateStoredProcedure(string storedProcedureId)
@@ -156,7 +180,10 @@ namespace Amerigas.FuelProviders.API.Providers
         {
             try
             {
+                //string query2 = "SELECT * FROM c WHERE ST_DISTANCE(c.Location, @location) < 30000";
+
                 QueryDefinition queryDefinition = new QueryDefinition(query);
+                     //.WithParameter("location", new Point(-104.5207, 41.1602));
                 var responseList = new List<dynamic>();
 
                 using (var feedIterator = _container.GetItemQueryIterator<dynamic>(

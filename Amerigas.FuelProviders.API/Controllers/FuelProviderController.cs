@@ -48,24 +48,19 @@ namespace Amerigas.FuelProviders.API.Controllers
         {
             try
             {
-                //SELECT *
-                //  FROM c
-                //    WHERE ST_DISTANCE(c.location, { "type": "Point", "coordinates":[31.9, -4.8]}) < 30000
-                if (request["location"]?["coordinates"] == null)
+                if (request["location"] == null)
                     return StatusCode(400, "Invalid request. Missing location field.");
 
                 if (request["radiusKilometers"] == null)
                     return StatusCode(400, "Invalid request. Missing radius field.");
 
-                var coordinates = request["location"]?["coordinates"] as double[];
-                var radius = (request["radiusKilometers"] as int?) * 1000;
+                var location = ((JObject)request["location"]).ToString();
+                var radius = (Convert.ToInt32(request["radiusKilometers"])) * 1000;
 
-                string query = $"SELECT * FROM c ST_DISTANCE(c.location, {{ \"type\": \"Point\", \"coordinates\":[{coordinates[0]}, {coordinates[1]}]}}) < {radius}";
+                string query = $"SELECT * FROM c WHERE  ST_DISTANCE(c.Location, {location}) < {radius}";
 
-                var isSuccess = await _cosmosDbService.QueryItems(query);
-                if (isSuccess == true)
-                    return Ok("Bulk Insert Successful.");
-                return StatusCode(500);
+                var result= await _cosmosDbService.QueryItems(query);
+                return Ok(result);
             }
             catch (Exception e)
             {

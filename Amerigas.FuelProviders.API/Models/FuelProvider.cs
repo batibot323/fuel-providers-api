@@ -18,9 +18,4 @@ namespace Amerigas.FuelProviders.API.Models
         public double LONGITUDE { get; set; }
         public string Brand { get; set; }
     }
-
-    //public ClassNamePlaceholder()
-    //{
-
-    //}
 }

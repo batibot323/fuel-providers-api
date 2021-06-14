@@ -3,3 +3,6 @@
 ################################################################################
 
 /Amerigas.FuelProviders.API/obj/Debug/net5.0
+/Amerigas.FuelProviders.API/bin/Debug/net5.0
+/.vs/Amerigas.FuelProviders.API
+/Amerigas.FuelProviders.API/obj

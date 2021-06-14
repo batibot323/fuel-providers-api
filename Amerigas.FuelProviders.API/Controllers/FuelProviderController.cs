@@ -1,4 +1,5 @@
 ﻿using Amerigas.FuelProviders.API.Models;
+using Amerigas.FuelProviders.API.Providers;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -14,14 +15,14 @@ namespace Amerigas.FuelProviders.API.Controllers
     [Route("fuelProviders")]
     public class FuelProviderController : ControllerBase
     {
-        private CosmosDbService _cosmosDbService;
+        private ICosmosDbService _cosmosDbService;
 
         private readonly ILogger<FuelProviderController> _logger;
 
-        public FuelProviderController(ILogger<FuelProviderController> logger)
+        public FuelProviderController(ILogger<FuelProviderController> logger, ICosmosDbService cosmosDbService)
         {
             _logger = logger;
-            _cosmosDbService = new CosmosDbService();
+            _cosmosDbService = cosmosDbService;
         }
 
         [HttpPost]

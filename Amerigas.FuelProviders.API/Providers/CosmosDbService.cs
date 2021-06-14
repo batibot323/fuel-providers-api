@@ -1,6 +1,8 @@
 ﻿using Amerigas.FuelProviders.API.Models;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Scripts;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -9,20 +11,30 @@ using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 
-namespace Amerigas.FuelProviders.API
+namespace Amerigas.FuelProviders.API.Providers
 {
-    public class CosmosDbService
+    public class CosmosDbService : ICosmosDbService
     {
-        private readonly string _databaseName = @"SampleDB";
-        private readonly string _containerName = @"Hani-Container";
-        private readonly string _account = @"https://amerigascosmostest.documents.azure.com:443/";
-        private readonly string _key = @"5SGA8ft28dINUNGCwccpccI7FE1TvLVovlOPk1U5V3th71xTNYLR1E0SvwwbkpJCNF3x2vR6DVumy1jrWM8tIg==";
-        private readonly string _pKey = "Amerigas";
+        private readonly ILogger<CosmosDbService> _logger;
+
+        private readonly string _databaseName;
+        private readonly string _containerName;
+        private readonly string _account;
+        private readonly string _key;
+        private readonly string _partitionKey;
         private readonly CosmosClient _client;
         private Container _container;
 
-        public CosmosDbService()
+        public CosmosDbService(IConfiguration config, ILogger<CosmosDbService> logger)
         {
+            _logger = logger;
+
+            _databaseName = config.GetSection("CosmosDb")["DatabaseName"];
+            _containerName = config.GetSection("CosmosDb")["ContainerName"];
+            _account = config.GetSection("CosmosDb")["Account"];
+            _key = config.GetSection("CosmosDb")["CosmosDBKey"];
+            _partitionKey = config.GetSection("CosmosDb")["PartitionKey"];
+
             CosmosClientOptions options = new CosmosClientOptions() { AllowBulkExecution = true };
             _client = new CosmosClient(_account, _key, options);
             _container = _client.GetContainer(_databaseName, _containerName);
@@ -48,13 +60,14 @@ namespace Amerigas.FuelProviders.API
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex.Message, ex);
                 result = "Error: " + ex.Message;
             }
 
             return result;
         }
 
-        public async Task<bool> InsertFuelProviders<T>(IEnumerable<T> collection)
+        public async Task<bool> InsertFuelProviders<T>(IEnumerable<T> collection) where T : BaseEntity
         {
             // Create Stored procedure if not exists
             try
@@ -72,12 +85,12 @@ namespace Amerigas.FuelProviders.API
 
                 // bulk delete
                 var query = "SELECT c._self FROM c";
-                var result = await DeleteAll(spId, query, _pKey);
+                var result = await DeleteAll(spId, query, _partitionKey);
 
                 // bulk insert
                 try
                 {
-                    BulkInsert<T>(collection, _pKey).Wait();
+                    BulkInsert<T>(collection, _partitionKey).Wait();
                     return true;
                 }
                 catch (Exception)
@@ -86,22 +99,25 @@ namespace Amerigas.FuelProviders.API
                     throw;
                 }
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-
+                _logger.LogError(ex.Message, ex);
                 throw;
             }
         }
 
-        public async Task BulkInsert<T>(IEnumerable<T> collection, string partitionKey)
+        public async Task BulkInsert<T>(IEnumerable<T> collection, string partitionKey) where T: BaseEntity
         {
+            if (string.IsNullOrWhiteSpace(partitionKey))
+                throw new ArgumentNullException("Partition Key is null.");
+
             try
             {
-
                 List<Task> concurrentTasks = new List<Task>();
                 foreach (var itemToInsert in collection)
                 {
-                    concurrentTasks.Add(_container.CreateItemAsync(itemToInsert, new PartitionKey(partitionKey)));
+                    itemToInsert.Application = partitionKey;
+                    concurrentTasks.Add(_container.CreateItemAsync(itemToInsert, new PartitionKey(itemToInsert.Application)));
                 }
                 await Task.WhenAll(concurrentTasks);
             }
@@ -120,9 +136,9 @@ namespace Amerigas.FuelProviders.API
                 if (result.StatusCode == HttpStatusCode.OK)
                     return true;
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-
+                _logger.LogError(ex.Message, ex);
                 throw;
             }
             return false;
@@ -140,9 +156,9 @@ namespace Amerigas.FuelProviders.API
 
                 return storedProcedureResponse.StatusCode == HttpStatusCode.Created ? true : false;
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-
+                _logger.LogError(ex.Message, ex);
                 throw;
             }
         }

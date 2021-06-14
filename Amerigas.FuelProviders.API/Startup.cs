@@ -1,3 +1,4 @@
+using Amerigas.FuelProviders.API.Providers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -48,6 +49,8 @@ namespace Amerigas.FuelProviders.API
                         builder.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
                     });
             });
+
+            services.AddScoped<ICosmosDbService, CosmosDbService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

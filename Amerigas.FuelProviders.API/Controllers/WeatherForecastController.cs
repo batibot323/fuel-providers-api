@@ -45,20 +45,24 @@ namespace Amerigas.FuelProviders.API.Controllers
         [HttpPost]
         [Route("FuelProviders")]
         [EnableCors("AllowAll")]
-        public async Task<string> InsertFuelProviders([FromBody]FuelProviderRequestModel[] fuelProviders)
+        public async Task<IActionResult> InsertFuelProviders([FromBody]FuelProviderRequestModel[] fuelProviders)
         {
-            var myObject = new
-            {
-                id = Guid.NewGuid(),
-                Name = "Hani",
-                Level = 85,
-                Hobby = "Cooking",
-                FavoriteFood = "Lasagna",
-                FavoriteDay = "Monday",
-                Color = "Orange"
-            };
-            JObject o = (JObject)JToken.FromObject(myObject);
-            return await _cosmosDbService.CreateItem(o);
+            //var myObject = new
+            //{
+            //    id = Guid.NewGuid(),
+            //    FuelProvider = "GASUL",
+            //    Name = "Hani",
+            //    Level = 85,
+            //    Hobby = "Cooking",
+            //    FavoriteFood = "Lasagna",
+            //    FavoriteDay = "Monday",
+            //    Color = "Orange"
+            //};
+            //JObject o = (JObject)JToken.FromObject(myObject);
+            //return Ok(await _cosmosDbService.CreateItem(o));
+
+            var result = await _cosmosDbService.BulkInsert(fuelProviders);
+            return Ok();
         }
     }
 }

@@ -8,6 +8,7 @@ namespace Amerigas.FuelProviders.API.Models
     public class FuelProviderRequestModel
     {
         public string StoreName { get; set; }
+        public string FuelProvider { get; set; }
         public string Address { get; set; }
         public string City { get; set; }
         public string State { get; set; }

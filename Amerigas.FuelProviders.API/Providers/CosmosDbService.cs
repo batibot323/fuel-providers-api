@@ -68,7 +68,7 @@ namespace Amerigas.FuelProviders.API.Providers
             return result;
         }
 
-        public async Task<bool> InsertFuelProviders<T>(IEnumerable<T> collection) where T : BaseEntity
+        public async Task<bool> InsertFuelProviders(IEnumerable<FuelProviderRequestModel> fuelProviders)
         {
             // Create Stored procedure if not exists
             try
@@ -101,7 +101,13 @@ namespace Amerigas.FuelProviders.API.Providers
                     }
                 }
                 // bulk insert
-                BulkInsert<T>(collection, _partitionKey).Wait();
+                List<FuelProvider> transformedFuelProviders = new List<FuelProvider>();
+                foreach (var fuelProvider in fuelProviders)
+                {
+                    var transformedData = new FuelProvider(fuelProvider);
+                    transformedFuelProviders.Add(transformedData);
+                }
+                BulkInsert(transformedFuelProviders, _partitionKey).Wait();
                 return true;
             }
             catch (Exception ex)
@@ -111,7 +117,7 @@ namespace Amerigas.FuelProviders.API.Providers
             }
         }
 
-        public async Task BulkInsert<T>(IEnumerable<T> collection, string partitionKey) where T : BaseEntity
+        public async Task BulkInsert(IEnumerable<FuelProvider> collection, string partitionKey)
         {
             try
             {

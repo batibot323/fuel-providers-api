@@ -8,7 +8,7 @@ namespace Amerigas.FuelProviders.API.Providers
 {
     public interface ICosmosDbService
     {
-        Task<bool> InsertFuelProviders<T>(IEnumerable<T> collection) where T : BaseEntity;
+        Task<bool> InsertFuelProviders(IEnumerable<FuelProviderRequestModel> collection);
 
     }
 }

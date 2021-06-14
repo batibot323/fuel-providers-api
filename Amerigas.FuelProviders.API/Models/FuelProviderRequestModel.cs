@@ -11,8 +11,6 @@ namespace Amerigas.FuelProviders.API.Models
         [JsonProperty("STORE NAME")]
         public string StoreName { get; set; }
 
-        public string FuelProvider { get; set; }
-
         public string Address { get; set; }
 
         public string City { get; set; }

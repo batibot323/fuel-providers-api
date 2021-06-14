@@ -10,5 +10,6 @@ namespace Amerigas.FuelProviders.API.Providers
     {
         Task<bool> InsertFuelProviders<T>(IEnumerable<T> collection) where T : BaseEntity;
 
+        Task<dynamic> QueryItems(string query);
     }
 }

@@ -124,7 +124,7 @@ namespace Amerigas.FuelProviders.API.Providers
         {
             try
             {
-                var result = await _client.GetContainer(_databaseName, _containerName).Scripts.ExecuteStoredProcedureAsync<dynamic>(spId, new PartitionKey(partitionKey), new[] { query });   
+                var result = await _client.GetContainer(_databaseName, _containerName).Scripts.ExecuteStoredProcedureAsync<dynamic>(spId, new PartitionKey(partitionKey), new[] { query });
             }
             catch (Exception ex)
             {
@@ -152,5 +152,33 @@ namespace Amerigas.FuelProviders.API.Providers
             }
         }
 
+        public async Task<dynamic> QueryItems(string query)
+        {
+            try
+            {
+                QueryDefinition queryDefinition = new QueryDefinition(query);
+                var responseList = new List<dynamic>();
+
+                using (var feedIterator = _container.GetItemQueryIterator<dynamic>(
+                    queryDefinition,
+                    null,
+                    new QueryRequestOptions() { PartitionKey = new PartitionKey(_partitionKey) }))
+                {
+                    while (feedIterator.HasMoreResults)
+                    {
+                        foreach (var item in await feedIterator.ReadNextAsync())
+                        {
+                            responseList.Add(item);
+                        }
+                    }
+                }
+                return responseList;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.Message, ex);
+                throw;
+            }
+        }
     }
 }

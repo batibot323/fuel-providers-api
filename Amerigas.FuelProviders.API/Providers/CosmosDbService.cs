@@ -3,6 +3,7 @@ using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Scripts;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -85,7 +86,20 @@ namespace Amerigas.FuelProviders.API.Providers
 
                 // bulk delete
                 var query = "SELECT c._self FROM c";
-                DeleteAll(spId, query, _partitionKey).Wait();
+                while (true)
+                {
+                    var deleteResponse = await DeleteAll(spId, query, _partitionKey);
+                    var json = JsonConvert.SerializeObject(deleteResponse, Formatting.Indented,
+                        new JsonSerializerSettings
+                        {
+                            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+                        });
+                    if (json.Contains("\"deleted\": 0"))
+                    {
+                        // Stop deleting when you there's no more to delete.
+                        break;
+                    }
+                }
                 // bulk insert
                 BulkInsert<T>(collection, _partitionKey).Wait();
                 return true;
@@ -120,17 +134,20 @@ namespace Amerigas.FuelProviders.API.Providers
             }
         }
 
-        public async Task DeleteAll(string spId, string query, string partitionKey)
+        public async Task<StoredProcedureExecuteResponse<dynamic>> DeleteAll(string spId, string query, string partitionKey)
         {
+            StoredProcedureExecuteResponse<dynamic> result;
             try
             {
-                var result = await _client.GetContainer(_databaseName, _containerName).Scripts.ExecuteStoredProcedureAsync<dynamic>(spId, new PartitionKey(partitionKey), new[] { query });   
+                result = await _client.GetContainer(_databaseName, _containerName).Scripts.ExecuteStoredProcedureAsync<dynamic>(spId, new PartitionKey(partitionKey), new[] { query });   
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex.Message, ex);
                 throw;
             }
+
+            return result;
         }
 
         public async Task<bool> CreateStoredProcedure(string storedProcedureId)

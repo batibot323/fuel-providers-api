@@ -17,13 +17,13 @@ namespace Amerigas.FuelProviders.API.Models
 
         public FuelProvider(FuelProviderRequestModel request)
         {
-            StoreName = request.StoreName;
-            Address = request.Address;
-            City = request.City;
-            State = request.State;
-            ZipCode = request.ZipCode;
-            Location = new GeographyPoint(request.LATITUDE, request.LONGITUDE);
-            Brand = request.Brand;
+            StoreName = request?.StoreName;
+            Address = request?.Address;
+            City = request?.City;
+            State = request?.State;
+            ZipCode = request?.ZipCode;
+            Location = request != null ? new GeographyPoint(request.LATITUDE, request.LONGITUDE) : null;
+            Brand = request?.Brand;
         }
     }
 }

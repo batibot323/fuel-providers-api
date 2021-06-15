@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace Amerigas.FuelProviders.API.Providers
@@ -176,30 +177,44 @@ namespace Amerigas.FuelProviders.API.Providers
             }
         }
 
-        public async Task<dynamic> QueryItems(string query)
+        public async Task<dynamic> QueryItems(string query, string continuationToken = null)
         {
             try
             {
-                //string query2 = "SELECT * FROM c WHERE ST_DISTANCE(c.Location, @location) < 30000";
+
+                string decodedToken = null;
+                string validToken = null;
+
+                // Decode the continuationToken
+                if (!string.IsNullOrEmpty(continuationToken))
+                {
+                    var bytes = System.Convert.FromBase64String(continuationToken);
+                    decodedToken = Encoding.UTF8.GetString(bytes);
+                }
 
                 QueryDefinition queryDefinition = new QueryDefinition(query);
-                //.WithParameter("location", new Point(-104.5207, 41.1602));
                 var responseList = new List<dynamic>();
 
                 using (var feedIterator = _container.GetItemQueryIterator<dynamic>(
                     queryDefinition,
-                    null,
+                    decodedToken,
                     new QueryRequestOptions() { PartitionKey = new PartitionKey(_partitionKey), MaxItemCount = 10 }))
                 {
-                    while (feedIterator.HasMoreResults)
+
+                    var response = await feedIterator.ReadNextAsync();
+                    foreach (var item in response)
                     {
-                        foreach (var item in await feedIterator.ReadNextAsync())
-                        {
-                            responseList.Add(item);
-                        }
+                        responseList.Add(item);
                     }
+
+                    continuationToken = response.ContinuationToken;
+
+                    // Encode the continuationToken
+                    var encodedToken = Encoding.UTF8.GetBytes(continuationToken);
+                    validToken = System.Convert.ToBase64String(encodedToken);
+
                 }
-                return responseList;
+                return  new { Data = responseList, ContinuationToken = validToken };
             }
             catch (Exception ex)
             {

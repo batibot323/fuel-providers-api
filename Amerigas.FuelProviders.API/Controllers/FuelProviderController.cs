@@ -44,7 +44,7 @@ namespace Amerigas.FuelProviders.API.Controllers
         }
 
         [HttpPost("search")]
-        public async Task<IActionResult> AreaRadialSearch([FromBody]dynamic request)
+        public async Task<IActionResult> AreaRadialSearch([FromBody]dynamic request, [FromQuery]string continuationToken = null)
         {
             try
             {
@@ -59,7 +59,7 @@ namespace Amerigas.FuelProviders.API.Controllers
 
                 string query = $"SELECT * FROM c WHERE  ST_DISTANCE(c.Location, {location}) < {radius}";
 
-                var result= await _cosmosDbService.QueryItems(query);
+                var result= await _cosmosDbService.QueryItems(query, continuationToken);
                 return Ok(result);
             }
             catch (Exception e)

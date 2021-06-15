@@ -146,7 +146,7 @@ namespace Amerigas.FuelProviders.API.Providers
             StoredProcedureExecuteResponse<dynamic> result;
             try
             {
-                result = await _client.GetContainer(_databaseName, _containerName).Scripts.ExecuteStoredProcedureAsync<dynamic>(spId, new PartitionKey(partitionKey), new[] { query });   
+                result = await _client.GetContainer(_databaseName, _containerName).Scripts.ExecuteStoredProcedureAsync<dynamic>(spId, new PartitionKey(partitionKey), new[] { query });
             }
             catch (Exception ex)
             {
@@ -183,13 +183,13 @@ namespace Amerigas.FuelProviders.API.Providers
                 //string query2 = "SELECT * FROM c WHERE ST_DISTANCE(c.Location, @location) < 30000";
 
                 QueryDefinition queryDefinition = new QueryDefinition(query);
-                     //.WithParameter("location", new Point(-104.5207, 41.1602));
+                //.WithParameter("location", new Point(-104.5207, 41.1602));
                 var responseList = new List<dynamic>();
 
                 using (var feedIterator = _container.GetItemQueryIterator<dynamic>(
                     queryDefinition,
                     null,
-                    new QueryRequestOptions() { PartitionKey = new PartitionKey(_partitionKey) }))
+                    new QueryRequestOptions() { PartitionKey = new PartitionKey(_partitionKey), MaxItemCount = 10 }))
                 {
                     while (feedIterator.HasMoreResults)
                     {

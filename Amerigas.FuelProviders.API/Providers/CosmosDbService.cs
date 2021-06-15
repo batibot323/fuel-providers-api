@@ -186,7 +186,7 @@ namespace Amerigas.FuelProviders.API.Providers
                 string validToken = null;
 
                 // Decode the continuationToken
-                if (!string.IsNullOrEmpty(continuationToken))
+                 if (!string.IsNullOrWhiteSpace(continuationToken))
                 {
                     var bytes = System.Convert.FromBase64String(continuationToken);
                     decodedToken = Encoding.UTF8.GetString(bytes);
@@ -210,9 +210,11 @@ namespace Amerigas.FuelProviders.API.Providers
                     continuationToken = response.ContinuationToken;
 
                     // Encode the continuationToken
-                    var encodedToken = Encoding.UTF8.GetBytes(continuationToken);
-                    validToken = System.Convert.ToBase64String(encodedToken);
-
+                    if (!string.IsNullOrWhiteSpace(continuationToken))
+                    {
+                        var encodedToken = Encoding.UTF8.GetBytes(continuationToken);
+                        validToken = System.Convert.ToBase64String(encodedToken);
+                    }
                 }
                 return  new { Data = responseList, ContinuationToken = validToken };
             }
